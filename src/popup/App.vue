@@ -1,19 +1,22 @@
 <template>
-  <hello-world />
+  <div class="app">
+    <Qr></Qr>
+  </div>
 </template>
 
 <script>
-import HelloWorld from '@/components/HelloWorld.vue'
-
+import Qr from '@/components/Qr/index.vue'
 export default {
   name: 'App',
-  components: { HelloWorld }
+  components: { Qr },
+  mounted() {},
 }
 </script>
 
 <style>
-html {
-  width: 400px;
+.app {
+  width: 300px;
   height: 400px;
+  padding: 16px;
 }
 </style>
