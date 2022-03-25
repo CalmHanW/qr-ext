@@ -23,12 +23,24 @@
     <div class="form">
       <textarea class="url" v-model="url" readonly :rows="3"></textarea>
       <div class="input layout">
-        <input style="flex:1" type="text" name="" v-model="urlFirst">
+        <input
+          style="flex:1"
+          type="text"
+          name=""
+          :disabled="!isCheck"
+          v-model="urlFirst"
+        >
         <input class="checkbox" type="checkbox" name="" v-model="isCheck">
       </div>
-      <input class="input" type="text" name="" v-model="urlSecond">
+      <div class="input layout">
+        <input style="flex:1" type="text" name="" v-model="urlSecond">
+        <input class="checkbox" type="checkbox" name="" v-model="isEncode">
+      </div>
     </div>
-    <div class="btn" @click="onSave">保存</div>
+    <div class="btn-con">
+      <div class="btn" @click="onSave">保存</div>
+      <div class="btn" @click="onClear">清除缓存</div>
+    </div>
   </div>
 </template>
 
@@ -43,47 +55,130 @@ export default {
 
   data() {
     return {
-      url: '',
-      isCheck: false,
-      urlFirst: '',
-      urlSecond: '',
-      urls: [],
+      isCheck: false, // 是否有拼接的前缀
+      isEncode: false, // url 是否编码
+      urlFirst: '', // 前部分拼接的 url
+      urlSecond: '', // 后部分拼接的 url（主url）
+      urls: [], // 存储的链接数组集
     };
+  },
+
+  computed: {
+    url: {
+      get() {
+        return this.urlFirst + (this.isEncode ? encodeURIComponent(this.urlSecond) : this.urlSecond);
+      },
+      // set(value) {
+      //   this.urlSecond = value;
+      // },
+    },
+    curIndex() {
+      let index = -1;
+      this.urls.forEach((item, k) => {
+        if (item.urlFirst === this.urlFirst && item.urlSecond === this.urlSecond) {
+          index = k;
+        }
+      })
+      return index;
+    }
   },
 
   mounted() {
     const vm = this;
+    // 当纯 HTML被完全加载以及解析时，DOMContentLoaded 事件会被触发，而不必等待样式表，图片或者子框架完成加载
     document.addEventListener('DOMContentLoaded', function() {
-      const queryInfo = {
-        active: true,
-        currentWindow: true
-      };
-
-      chrome.tabs.query(queryInfo, function(tabs) {
-        const tab = tabs[0];
-        vm.url = tab.url || '';
-        vm.urls.push(vm.url)
+      // 获取已存储的 url
+      chrome.storage.local.get("urls", (res) => {
+        alert(JSON.stringify(res.urls))
+        // alert(res.urls.length)
+        if(res.urls) {
+          vm.urls.splice(0, 0, ...res.urls);
+        }
+        vm.getCurrentTab();
       });
-    });
-
-    // 获取已存储的 url
-    chrome.storage.local.get("urls", (res) => {
-      if(res.urls) {
-        vm.urls.splice(0, 0, ...res.urls);
-      }
     });
   },
 
   methods: {
+    getCurrentTab() {
+      const vm = this;
+      chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      }, function(tabs) {
+        const tab = tabs[0];
+        vm.urlSecond = tab.url || '';
+
+        // const index = vm.urls.indexOf(vm.urlSecond);
+        // alert(JSON.stringify(vm.urls));
+        let hasUrl = -1;
+        vm.urls.forEach((item, index) => {
+          alert(vm.urlFirst);
+          if (item.urlFirst === vm.urlFirst && item.urlSecond === vm.urlSecond) {
+            hasUrl = index;
+          }
+          // return item.urlFirst === vm.urlFirst && item.urlSecond === vm.urlSecond
+        })
+
+        if (hasUrl === -1) {
+          vm.urls.push({
+            urlFirst: vm.urlFirst,
+            urlSecond: vm.urlSecond,
+            isStorge: false,
+          });
+
+          // // 先将当前页面进行存储(当前页面自动保存)
+          // chrome.storage.local.set({
+          //   urls: vm.urls
+          // });
+        }
+      });
+    },
+    // 向左边查找
     onLeft() {
-      // alert('onLeft')
+      const leftIndex = this.curIndex - 1;
+      alert(leftIndex);
+      if (leftIndex >= 0) {
+        // this.url = this.urls[leftIndex];
+        this.urlFirst = this.urls[leftIndex].urlFirst;
+        this.urlSecond = this.urls[leftIndex].urlSecond;
+      }
     },
+    // 向右边查找
     onRight() {
-      // alert('onRight')
+      const rightIndex = this.curIndex + 1;
+      alert(rightIndex);
+      if (rightIndex < this.urls.length) {
+        // this.url = this.urls[rightIndex];
+        this.urlFirst = this.urls[rightIndex].urlFirst;
+        this.urlSecond = this.urls[rightIndex].urlSecond;
+      }
     },
+    // 保存当前地址
     onSave() {
-      chrome.storage.local.set(this.urls);
-    }
+      // 是否已经存储
+      // let isStorge = false;
+      // this.urls.forEach((item) => {
+      //   if (item === this.url) {
+      //     isStorge = true;
+      //   }
+      // })
+
+      if (this.curIndex === -1 || !this.urls[this.curIndex].isStorge) {
+        this.urls.push({
+          urlFirst: this.urlFirst,
+          urlSecond: this.urlSecond,
+          isStorge: true,
+        });
+        chrome.storage.local.set({
+          urls: this.urls
+        });
+      }
+    },
+    // 清空所有地址
+    onClear() {
+      chrome.storage.local.clear();
+    },
   },
 };
 </script>
@@ -125,15 +220,20 @@ export default {
       display: flex;
     }
   }
-  .btn {
-    margin-top: 16px;
-    height: 30px;
-    width: 100%;
-    background-color: rgb(148, 175, 224);
-    border-radius: 2px;
+  .btn-con {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: space-around;
+
+    .btn {
+      margin-top: 16px;
+      height: 30px;
+      width: 120px;
+      background-color: rgb(148, 175, 224);
+      border-radius: 2px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   }
 }
 </style>
