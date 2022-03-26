@@ -39,7 +39,7 @@
     </div>
     <div class="btn-con">
       <div class="btn" @click="onSave">保存</div>
-      <div class="btn" @click="onClear">清除缓存</div>
+      <div class="btn cancel" @click="onClear">清除缓存</div>
     </div>
   </div>
 </template>
@@ -68,9 +68,6 @@ export default {
       get() {
         return this.urlFirst + (this.isEncode ? encodeURIComponent(this.urlSecond) : this.urlSecond);
       },
-      // set(value) {
-      //   this.urlSecond = value;
-      // },
     },
     curIndex() {
       let index = -1;
@@ -89,8 +86,7 @@ export default {
     document.addEventListener('DOMContentLoaded', function() {
       // 获取已存储的 url
       chrome.storage.local.get("urls", (res) => {
-        alert(JSON.stringify(res.urls))
-        // alert(res.urls.length)
+        // alert(JSON.stringify(res.urls))
         if(res.urls) {
           vm.urls.splice(0, 0, ...res.urls);
         }
@@ -102,31 +98,26 @@ export default {
   methods: {
     getCurrentTab() {
       const vm = this;
+      // 获取具有指定属性的所有标签页
       chrome.tabs.query({
         active: true,
         currentWindow: true
       }, function(tabs) {
         const tab = tabs[0];
         vm.urlSecond = tab.url || '';
-
-        // const index = vm.urls.indexOf(vm.urlSecond);
-        // alert(JSON.stringify(vm.urls));
+        // 如果当前的地址不在已存地址中，则塞入 urls 的末尾
         let hasUrl = -1;
         vm.urls.forEach((item, index) => {
-          alert(vm.urlFirst);
           if (item.urlFirst === vm.urlFirst && item.urlSecond === vm.urlSecond) {
-            hasUrl = index;
+            return hasUrl = index;
           }
-          // return item.urlFirst === vm.urlFirst && item.urlSecond === vm.urlSecond
         })
-
         if (hasUrl === -1) {
           vm.urls.push({
             urlFirst: vm.urlFirst,
             urlSecond: vm.urlSecond,
             isStorge: false,
           });
-
           // // 先将当前页面进行存储(当前页面自动保存)
           // chrome.storage.local.set({
           //   urls: vm.urls
@@ -137,9 +128,7 @@ export default {
     // 向左边查找
     onLeft() {
       const leftIndex = this.curIndex - 1;
-      alert(leftIndex);
       if (leftIndex >= 0) {
-        // this.url = this.urls[leftIndex];
         this.urlFirst = this.urls[leftIndex].urlFirst;
         this.urlSecond = this.urls[leftIndex].urlSecond;
       }
@@ -147,23 +136,13 @@ export default {
     // 向右边查找
     onRight() {
       const rightIndex = this.curIndex + 1;
-      alert(rightIndex);
       if (rightIndex < this.urls.length) {
-        // this.url = this.urls[rightIndex];
         this.urlFirst = this.urls[rightIndex].urlFirst;
         this.urlSecond = this.urls[rightIndex].urlSecond;
       }
     },
-    // 保存当前地址
+    // 保存输入的当前地址
     onSave() {
-      // 是否已经存储
-      // let isStorge = false;
-      // this.urls.forEach((item) => {
-      //   if (item === this.url) {
-      //     isStorge = true;
-      //   }
-      // })
-
       if (this.curIndex === -1 || !this.urls[this.curIndex].isStorge) {
         this.urls.push({
           urlFirst: this.urlFirst,
@@ -228,11 +207,16 @@ export default {
       margin-top: 16px;
       height: 30px;
       width: 120px;
-      background-color: rgb(148, 175, 224);
+      background-color: rgb(114, 161, 247);
+      border: 1px solid rgb(69, 130, 244);
       border-radius: 2px;
       display: flex;
       justify-content: center;
       align-items: center;
+    }
+    .cancel {
+      background-color: rgb(208, 212, 220);
+      border: 1px solid rgb(139, 141, 147);
     }
   }
 }

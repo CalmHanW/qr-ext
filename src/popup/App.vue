@@ -9,7 +9,6 @@ import Qr from '@/components/Qr/index.vue'
 export default {
   name: 'App',
   components: { Qr },
-  mounted() {},
 }
 </script>
 
